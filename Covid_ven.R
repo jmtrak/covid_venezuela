@@ -51,11 +51,33 @@ summary(covid_ven_df_2$Date)
 cumulative_cases <- filter(covid_ven_df_2, Date == max(Date))
 class(cumulative_cases$Date)
 
-covid_ven_df_2 %>%
+# EDA
+table_monhtly <- covid_ven_df_2 |>
+  mutate(months = month(Date), year = year(Date)) |>
+  select(everything(), - DateTS) |>
+  group_by(year, months) |>
+  summarise(Date = max(Date), 
+            across(c(ends_with("New")), 
+                   list(sum = sum, mean = mean), 
+                   .names = "{.col}_{.fn}"))
+tail(table_monhtly)
+
+g_covid_cases <- table_monhtly |>
+  filter(Date < "2022-06-30") |>
+  ggplot(aes(Date, Confirmed_New_sum)) +
+  geom_line() +
+  scale_x_date(date_breaks = "2 month", date_labels = "%b %y") +
+  ylab("Confirmed Cases") + xlab("") +
+  theme_classic()
+g_covid_cases
+ggsave("outputs/g_covid_cases.png", g_covid_cases, dpi = 300, device = "png")
+
+# Chart
+g_covid_cum <- covid_ven_df_2 %>%
   ggplot(aes(x = Date)) +
   geom_line(aes(y= Confirmed_Count)) + theme_classic() +
-  ylab("Casos acumulados") + xlab("") +
-  scale_x_date(date_breaks = "1 month", date_labels = "%b %y") +
+  ylab("Cumulative Cases") + xlab("") +
+  scale_x_date(date_breaks = "2 month", date_labels = "%b %y") +
   scale_y_continuous(labels = scales::comma_format(),
                      n.breaks = 10) +
   geom_label(data =cumulative_cases, 
@@ -63,4 +85,5 @@ covid_ven_df_2 %>%
              label = Confirmed_Count)) +
   theme(axis.text.x = element_text(angle = 90))
 
-ggsave("outputs/covid_cum.png", dpi = 300, device = "png")
+g_covid_cum
+ggsave("outputs/covid_cum.png", g_covid_cum, dpi = 300, device = "png")
