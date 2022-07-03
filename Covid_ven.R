@@ -51,7 +51,7 @@ summary(covid_ven_df_2$Date)
 cumulative_cases <- filter(covid_ven_df_2, Date == max(Date))
 class(cumulative_cases$Date)
 
-covid_ven_df_2 %>%
+g_covid_cum <- covid_ven_df_2 %>%
   ggplot(aes(x = Date)) +
   geom_line(aes(y= Confirmed_Count)) + theme_classic() +
   ylab("Casos acumulados") + xlab("") +
@@ -63,4 +63,5 @@ covid_ven_df_2 %>%
              label = Confirmed_Count)) +
   theme(axis.text.x = element_text(angle = 90))
 
-ggsave("outputs/covid_cum.png", dpi = 300, device = "png")
+g_covid_cum
+ggsave("outputs/covid_cum.png", g_covid_cum, dpi = 300, device = "png")
