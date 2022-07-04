@@ -51,6 +51,7 @@ summary(covid_ven_df_2$Date)
 cumulative_cases <- filter(covid_ven_df_2, Date == max(Date))
 class(cumulative_cases$Date)
 
+<<<<<<< HEAD
 # EDA
 table_monhtly <- covid_ven_df_2 |>
   mutate(months = month(Date), year = year(Date)) |>
@@ -73,6 +74,7 @@ g_covid_cases
 ggsave("outputs/g_covid_cases.png", g_covid_cases, dpi = 300, device = "png")
 
 # Chart
+
 g_covid_cum <- covid_ven_df_2 %>%
   ggplot(aes(x = Date)) +
   geom_line(aes(y= Confirmed_Count)) + theme_classic() +
