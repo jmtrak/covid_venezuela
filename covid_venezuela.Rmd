@@ -1,0 +1,143 @@
+---
+title: "Covid in Venezuela"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard, quietly = TRUE )
+library(tidyverse, quietly = TRUE)
+library(rvest, quietly = TRUE)
+library(httr, quietly = TRUE)
+library(jsonlite, quietly = TRUE)
+library(lubridate, quietly = TRUE)
+library(plotly, quietly = TRUE)
+library(sysfonts, quietly = TRUE)
+```
+
+```{r themes}
+
+my_theme <- theme(panel.background = element_rect(fill = "#EAFAF1"),
+                  plot.background =  element_rect(fill = "#FDFEFE"), 
+                  axis.title = element_text(color = "#BA4A00", 
+                                            family = "mono",
+                                            face = "bold"),
+                  strip.background = element_blank(),
+                  strip.text = element_text(size = 20, face = "bold"),
+                  
+                  ) 
+```
+
+
+```{r extract data, include=FALSE}
+## Getting data from API
+url_covid_ven <- 'https://covid19.patria.org.ve/api/v1/timeline'
+response_url_ve <- GET(url_covid_ven)
+
+## Raw data: is not structured and readable
+json_resp_text<-content(response_url_ve,as="text") 
+
+## transform data to data frame and a tibble
+covid_ven_df <- fromJSON(json_resp_text)
+covid_ven_df <- as_tibble(covid_ven_df)
+
+# Data exploration
+str(covid_ven_df) ### Data has nested tibbles inside
+
+
+## Unnest the data frames isnde the tibble, and getting the right names
+
+covid_ven_df_2 <- unnest(covid_ven_df,cols = c(Confirmed, Recovered, Deaths, Active),
+       names_repair = "unique", names_sep = c("_"))
+
+## Check colnames
+colnames(covid_ven_df_2)
+write.csv(covid_ven_df_2, "data/covid_ven_df_2.csv")
+
+## Date formating 
+covid_ven_df_2$Date <- as_date(covid_ven_df_2$Date)
+
+cumulative_cases <- filter(covid_ven_df_2, Date == max(Date))
+
+# EDA
+table_monhtly <- covid_ven_df_2 |>
+  mutate(months_abbr = month(Date, label = TRUE),
+         year = year(Date)) |>
+  select(everything(), - DateTS) |>
+  group_by(year, months_abbr) |>
+  summarise(Date = max(Date), 
+            across(c(ends_with("New")), 
+                   list(sum = sum, mean = mean), 
+                   .names = "{.col}_{.fn}")) |>
+  mutate(months_num = month(Date, label = FALSE))
+
+months_abbr <- table_monhtly |>
+  ungroup() |>
+  select(months_num, months_abbr) |>
+  unique() |>
+  arrange(months_num)
+
+```
+
+Column {data-width=550}
+-----------------------------------------------------------------------
+
+### Monthly cases by year
+
+```{r cases}
+
+g_covid_cases <- table_monhtly |>
+  ggplot(aes(months_num, Confirmed_New_sum)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1:12, 
+                     labels = unique(months_abbr$months_abbr)) +
+  ylab("Confirmed Cases") + xlab("") +
+  theme_classic() +
+  facet_grid(vars(year))+
+    labs(caption = "Fuente: https://covid19.patria.org.ve/api/v1/timeline") +
+  my_theme
+
+g_covid_cases
+
+
+```
+
+Column {data-width=450}
+-----------------------------------------------------------------------
+
+### Cumulative Cases
+
+```{r cumulative_cases}
+g_covid_cum <- covid_ven_df_2 %>%
+  ggplot(aes(x = Date)) +
+  geom_line(aes(y= Confirmed_Count)) + 
+  theme_classic() +
+  ylab("Cumulative Cases") + xlab("") +
+  scale_x_date(date_breaks = "3 month", date_labels = "%b %y") +
+  scale_y_continuous(labels = scales::comma_format(),
+                     n.breaks = 10) +
+  geom_label(data =cumulative_cases, 
+             aes(y = Confirmed_Count,
+             label = Confirmed_Count)) +
+  theme(axis.text.x = element_text(size =8)) +
+  labs(caption = "Fuente: https://covid19.patria.org.ve/api/v1/timeline")
+
+g_covid_cum + my_theme
+```
+
+### Number of confirmed deaths by month
+
+```{r monthly_death}
+g_covid_cases <- table_monhtly |>
+  ggplot(aes(Date, Deaths_New_sum)) +
+  geom_line() +
+  scale_x_date(date_breaks = "2 month", date_labels = "%b %y") +
+  ylab("Confirmed Cases") + xlab("") +
+  theme_classic() +
+  labs(caption = "Fuente: https://covid19.patria.org.ve/api/v1/timeline")
+g_covid_cases + my_theme
+
+```
+

@@ -62,6 +62,7 @@ table_monhtly <- covid_ven_df_2 |>
                    .names = "{.col}_{.fn}"))
 tail(table_monhtly)
 
+# Chart 1
 g_covid_cases <- table_monhtly |>
   filter(Date < "2022-06-30") |>
   ggplot(aes(Date, Confirmed_New_sum)) +
@@ -69,14 +70,11 @@ g_covid_cases <- table_monhtly |>
   scale_x_date(date_breaks = "2 month", date_labels = "%b %y") +
   ylab("Confirmed Cases") + xlab("") +
   theme_classic()
+
 g_covid_cases
-
-
-
 ggsave("outputs/g_covid_cases.png", g_covid_cases, dpi = 300, device = "png")
 
-# Chart
-
+# Chart 2
 g_covid_cum <- covid_ven_df_2 %>%
   ggplot(aes(x = Date)) +
   geom_line(aes(y= Confirmed_Count)) + theme_classic() +
@@ -92,3 +90,4 @@ g_covid_cum <- covid_ven_df_2 %>%
 g_covid_cum
 ggsave("outputs/covid_cum.png", g_covid_cum, dpi = 300, device = "png")
 
+glimpse(covid_ven_df, width = 10)
